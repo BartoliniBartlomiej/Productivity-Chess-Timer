@@ -19,7 +19,6 @@ struct ContentView: View {
             }
         }
         .frame(width: 300, height: 400) // Kompaktowy rozmiar okna
-        .cornerRadius(20)
     }
     
     // Widok ustawień czasu
@@ -72,11 +71,13 @@ struct ContentView: View {
         VStack(spacing: 0) {
             // GÓRA: Twój czas (Praca)
             Button(action: {
-                if !vm.isWorkTurn { vm.toggleTimer() }
+                if !vm.isWorkTurn || (vm.isWorkTurn && !vm.isRunning) {
+                    vm.toggleTimer()
+                }
             }) {
                 ZStack {
                     Rectangle()
-                        .fill(vm.isWorkTurn && vm.isRunning ? Color.green.opacity(0.7) : Color.green.opacity(0.2))
+                        .fill(vm.isWorkTurn && vm.isRunning ? Color.green : Color.gray)
                     
                     VStack {
                         Text("YOUR TASK")
@@ -102,11 +103,13 @@ struct ContentView: View {
             
             // DÓŁ: Czas przeciwnika (Dystrakcje)
             Button(action: {
-                if vm.isWorkTurn { vm.toggleTimer() }
+                if vm.isWorkTurn || (!vm.isWorkTurn && !vm.isRunning) {
+                    vm.toggleTimer()
+                }
             }) {
                 ZStack {
                     Rectangle()
-                        .fill(!vm.isWorkTurn && vm.isRunning ? Color.red.opacity(0.7) : Color.red.opacity(0.2))
+                        .fill(!vm.isWorkTurn && vm.isRunning ? Color.red : Color.gray)
                     
                     VStack {
                         Text("DISTRACTIONS")
