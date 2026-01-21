@@ -1,24 +1,45 @@
 import SwiftUI
+import SwiftData
 
 struct ContentView: View {
     @StateObject var vm = TimerViewModel()
     
+    @Environment(\.modelContext) private var context
+    
+    @State private var showHistory = false
+
+    @State private var showCompletionAlert = false
+    
     var body: some View {
         ZStack {
-            // 1. To stworzy efekt "szkła" (blur)
-            //VisualEffectView(material: .hudWindow, blendingMode: .withinWindow)
-            //   .edgesIgnoringSafeArea(.all)
-            
-            // 2. Opcjonalnie: lekki kolor bazowy, żeby teksty były czytelniejsze
-            //Color.black.opacity(0.1).edgesIgnoringSafeArea(.all)
-            
             if vm.isSetupMode {
                 setupView
             } else {
                 timerView
             }
         }
-        .frame(width: 300, height: 400) // Kompaktowy rozmiar okna
+        .frame(width: 300, height: 400)
+        //.background(Color(nsColor: .windowBackgroundColor))
+        // 2. OTWIERANIE OKNA HISTORII
+        .sheet(isPresented: $showHistory) {
+            HistoryView()
+        }
+        // 2. DEFINICJA ALBERTU (POPUPU)
+        .alert("Session summary", isPresented: $showCompletionAlert) {
+            Button("Task completed") {
+                saveSession(isCompleted: true)
+                vm.reset()
+            }
+            
+            Button("Task not completed") {
+                saveSession(isCompleted: false)
+                vm.reset()
+            }
+            
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("Is your task completed?")
+        }
     }
     
     // Widok ustawień czasu
@@ -62,6 +83,18 @@ struct ContentView: View {
                     .cornerRadius(8)
             }
             .buttonStyle(.plain)
+            
+            // 3. NOWY PRZYCISK HISTORII
+            Button(action: {
+                showHistory = true
+            }) {
+                HStack {
+                    Image(systemName: "list.bullet.clipboard")
+                    Text("Historia")
+                }
+            }
+            .buttonStyle(.borderless) // Dyskretny styl bez tła
+            .padding(.top, 10)
         }
         .padding()
     }
@@ -124,8 +157,19 @@ struct ContentView: View {
             .buttonStyle(.plain)
         }
         .overlay(
-            // Przycisk powrotu/resetu w rogu
-            Button(action: { vm.reset() }) {
+            // --- ZMIANA W PRZYCISKU RESETU ---
+            Button(action: {
+                // 3. LOGIKA PRZYCISKU "X"
+                // Sprawdzamy, czy w ogóle coś robiliśmy (żeby nie pytać przy pustym timerze)
+                let workDone = vm.targetDuration - vm.workTimeLeft
+                if workDone > 0 || vm.distractionTimeElapsed > 0 {
+                    // Jeśli był jakiś postęp -> Pytamy o sukces
+                    showCompletionAlert = true
+                } else {
+                    // Jeśli nic nie zrobiono -> Po prostu reset
+                    vm.reset()
+                }
+            }) {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundColor(.gray)
                     .padding(8)
@@ -133,6 +177,26 @@ struct ContentView: View {
             .buttonStyle(.plain),
             alignment: .topTrailing
         )
+    }
+    
+    func saveSession(isCompleted: Bool) {
+            let workDuration = vm.targetDuration - vm.workTimeLeft
+            
+            if workDuration > 0 || vm.distractionTimeElapsed > 0 {
+                let newTask = TaskItem(
+                    date: Date(),
+                    timeTask: workDuration,
+                    timeDistractions: vm.distractionTimeElapsed,
+                    timeEst: vm.targetDuration, // Zapisujemy planowany czas
+                    isCompleted: isCompleted    // Zapisujemy czy sukces
+                )
+                
+                context.insert(newTask)
+            }
+        }
+    
+    func completeTask() {
+        
     }
 }
 #Preview{

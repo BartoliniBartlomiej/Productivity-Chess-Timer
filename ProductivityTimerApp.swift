@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 @main
 struct ProductivityChessApp: App {
@@ -16,6 +17,7 @@ struct ProductivityChessApp: App {
         // Ukrywamy standardowy pasek tytułu, aby wyglądało jak "widget"
         .windowStyle(HiddenTitleBarWindowStyle())
         .windowResizability(.contentSize)
+        .modelContainer(for: TaskItem.self)
     }
 }
 
