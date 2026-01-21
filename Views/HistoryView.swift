@@ -1,182 +1,3 @@
-////
-////  HistoryView.swift
-////  ProductivityTimer
-////
-////  Created by Bartłomiej Kuś on 21/01/2026.
-////
-//
-//import SwiftUI
-//import SwiftData
-//
-//struct HistoryView: View {
-//    // To pozwala zamknąć okno historii
-//    @Environment(\.dismiss) private var dismiss
-//    
-//    // To automatycznie pobiera dane z bazy i sortuje je od najnowszych
-//    @Query(sort: \TaskItem.date, order: .reverse) private var history: [TaskItem]
-//    
-//    // To pozwala usuwać elementy z bazy
-//    @Environment(\.modelContext) private var context
-//
-//    var body: some View {
-//        VStack(spacing: 0) {
-//            // --- Nagłówek ---
-//            HStack {
-//                Text("History of Sessions")
-//                    .font(.headline)
-//                Spacer()
-//                Button("Close") {
-//                    dismiss()
-//                }
-//                .buttonStyle(.bordered)
-//                .controlSize(.small)
-//            }
-//            .padding()
-//            .background(Color(nsColor: .windowBackgroundColor))
-//
-//            Divider()
-//
-//            // --- Lista ---
-//            if history.isEmpty {
-//                VStack {
-//                    Spacer()
-//                    Image(systemName: "clock.arrow.circlepath")
-//                        .font(.largeTitle)
-//                        .opacity(0.3)
-//                    Text("No sessions in history")
-//                        .foregroundColor(.secondary)
-//                        .padding(.top, 5)
-//                    Spacer()
-//                }
-//            } else {
-//                List {
-//                    ForEach(history) { item in
-//                        HStack {
-//                            // Data po lewej
-//                            VStack(alignment: .leading) {
-//                                Text(item.date.formatted(date: .numeric, time: .omitted))
-//                                    .font(.caption)
-//                                    .bold()
-//                                Text(item.date.formatted(date: .omitted, time: .shortened))
-//                                    .font(.caption2)
-//                                    .foregroundColor(.secondary)
-//                            }
-//                            .frame(width: 70, alignment: .leading)
-//
-//                            Divider()
-//
-//                            // Czasy po prawej
-//                            VStack(alignment: .leading, spacing: 2) {
-//                                HStack {
-//                                    Image(systemName: "checkmark.circle.fill")
-//                                        .foregroundColor(.green)
-//                                        .font(.caption2)
-//                                    Text("Work: \(formatTime(item.timeTask))")
-//                                }
-//                                HStack {
-//                                    Image(systemName: "xmark.circle.fill")
-//                                        .foregroundColor(.red)
-//                                        .font(.caption2)
-//                                    Text("Distractions: \(formatTime(item.timeDistractions))")
-//                                }
-//                            }
-//                            .font(.system(.caption, design: .monospaced))
-//                            
-//                            Spacer()
-//                            
-//                            VStack{
-//                                HStack{
-//                                    Spacer()
-//                                    Text("Σ \(formatTime(item.timeFull))")
-//                                        .font(.caption2)
-//                                        .foregroundColor(.secondary)
-//                                }
-//                                HStack{
-//                                    Spacer()
-//                                    Text("Est. \(formatTime(item.timeEst))")
-//                                        .font(.caption2)
-//                                        .foregroundColor(.secondary)
-//                                }
-//                            }
-//                        }
-//                        .padding(.vertical, 4)
-//                        // Menu kontekstowe (prawy przycisk myszy) do usuwania
-//                        .contextMenu {
-//                            Button("Delete Session", role: .destructive) {
-//                                deleteItem(item)
-//                            }
-//                        }
-//                    }
-//                    .onDelete(perform: deleteItems) // Obsługa swipe-to-delete
-//                }
-//                .listStyle(.plain) // Prosty styl listy, pasuje do małego okna
-//            }
-//        }
-//        .frame(minWidth: 400, minHeight: 400)
-//    }
-//
-//    // Funkcja pomocnicza do usuwania z listy
-//    private func deleteItems(offsets: IndexSet) {
-//        for index in offsets {
-//            context.delete(history[index])
-//        }
-//    }
-//    
-//    // Funkcja pomocnicza do usuwania pojedynczego elementu (context menu)
-//    private func deleteItem(_ item: TaskItem) {
-//        context.delete(item)
-//    }
-//
-//    // Pomocniczy format czasu (kopiujemy logikę, żeby widok był niezależny)
-//    private func formatTime(_ time: TimeInterval) -> String {
-//        let minutes = Int(time) / 60
-//        let seconds = Int(time) % 60
-//        return String(format: "%02d:%02d", minutes, seconds)
-//    }
-//}
-//
-//
-//#Preview {
-//    // 1. Konfiguracja kontenera w pamięci (nie zapisuje na dysku)
-//    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-//    let container = try! ModelContainer(for: TaskItem.self, configurations: config)
-//
-//    // 2. Tworzenie przykładowych danych
-//    // Przykład 1: Dzisiejsza sesja (dobry wynik)
-//    let item1 = TaskItem(
-//        date: Date(),
-//        timeTask: 25 * 60,       // 25 minut pracy
-//        timeDistractions: 120 ,    // 2 minuty przerwy
-//        timeEst: 25 * 60
-//    )
-//    
-//    // Przykład 2: Wczorajsza sesja (dużo dystrakcji)
-//    // .addingTimeInterval(-86400) odejmuje jeden dzień (w sekundach)
-//    let item2 = TaskItem(
-//        date: Date().addingTimeInterval(-86400),
-//        timeTask: 15 * 60,       // 15 minut pracy
-//        timeDistractions: 10 * 60, // 10 minut przerwy
-//        timeEst: 15 * 60
-//    )
-//
-//    // Przykład 3: Jakaś stara sesja
-//    let item3 = TaskItem(
-//        date: Date().addingTimeInterval(-86400 * 3),
-//        timeTask: 45 * 60,
-//        timeDistractions: 0,
-//        timeEst: 45 * 60
-//    )
-//
-//    // 3. Wstawienie danych do kontekstu
-//    container.mainContext.insert(item1)
-//    container.mainContext.insert(item2)
-//    container.mainContext.insert(item3)
-//
-//    // 4. Zwrócenie widoku z wstrzykniętym kontenerem
-//    return HistoryView()
-//        .modelContainer(container)
-//}
-
 //
 //  HistoryView.swift
 //  ProductivityTimer
@@ -210,10 +31,21 @@ struct HistoryView: View {
                 .buttonStyle(.bordered)
                 .controlSize(.small)
             }
-            .padding()
+            .padding(.horizontal, 7)
+            .padding(.vertical, 4)
             .background(Color(nsColor: .windowBackgroundColor))
 
             Divider()
+
+            // --- TU DODAJ WYKRES ---
+            // Wyświetlamy go tylko, jeśli jest historia
+            if !history.isEmpty {
+                HistoryChartView(history: history)
+                    .padding(.bottom, 10)
+                
+                Divider() // Oddzielenie wykresu od listy
+            }
+            // -----------------------
 
             // --- Lista ---
             if history.isEmpty {
@@ -256,7 +88,7 @@ struct HistoryView: View {
                 .listStyle(.sidebar) // Styl sidebar ładnie oddziela sekcje
             }
         }
-        .frame(minWidth: 400, minHeight: 450)
+        .frame(minWidth: 300, minHeight: 500)
     }
 
     // MARK: - Logika Grupowania
@@ -440,15 +272,39 @@ struct DailySummaryRow: View {
     // Item 3: TRZY DNI TEMU (Sesja poranna)
     let item3 = TaskItem(
         date: Date().addingTimeInterval(-86400 * 3),
-        timeTask: 45 * 60,
+        timeTask: 60 * 60,
         timeDistractions: 0,
+        timeEst: 60 * 60,
+        isCompleted: false
+    )
+    let item4 = TaskItem(
+        date: Date().addingTimeInterval(-86400 * 2),
+        timeTask: 45 * 60,
+        timeDistractions: 5*60,
         timeEst: 45 * 60,
+        isCompleted: false
+    )
+    let item5 = TaskItem(
+        date: Date().addingTimeInterval(-86400 * 4),
+        timeTask: 40 * 60,
+        timeDistractions: 10*60,
+        timeEst: 45 * 60,
+        isCompleted: true
+    )
+    let item6 = TaskItem(
+        date: Date().addingTimeInterval(-86400 * 5),
+        timeTask: 15 * 60,
+        timeDistractions: 25*60,
+        timeEst: 15 * 60,
         isCompleted: false
     )
 
     container.mainContext.insert(item1)
     container.mainContext.insert(item2)
     container.mainContext.insert(item3)
+    container.mainContext.insert(item4)
+    container.mainContext.insert(item5)
+    container.mainContext.insert(item6)
 
     return HistoryView()
         .modelContainer(container)

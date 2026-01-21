@@ -37,9 +37,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 window.titlebarAppearsTransparent = true
                 
                 // 4. Ukrycie przycisków systemowych (X, -, powiększ)
-                window.standardWindowButton(.closeButton)?.isHidden = true
-                window.standardWindowButton(.miniaturizeButton)?.isHidden = true
-                window.standardWindowButton(.zoomButton)?.isHidden = true
+                // window.standardWindowButton(.closeButton)?.isHidden = true
+                // window.standardWindowButton(.miniaturizeButton)?.isHidden = true
+                // window.standardWindowButton(.zoomButton)?.isHidden = true
                 
                 // 5. KLUCZOWE: Zablokowanie zmiany rozmiaru
                 // Usuwamy flagę .resizable ze stylu okna
