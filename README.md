@@ -23,7 +23,7 @@ This makes distractions visible and measurable, encouraging better focus habits.
 * 📊 Separate tracking of productive time and distraction time
 * 🪟 Floating, always-on-top window
 * 🧼 Minimalist UI with fixed window size
-
+* 📊 History of your tasks (beta)
 ---
 
 ## How It Works
