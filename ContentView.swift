@@ -2,14 +2,11 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    @StateObject var vm = TimerViewModel()
-    
+    @ObservedObject var vm: TimerViewModel
+
     @Environment(\.modelContext) private var context
-    
     @State private var showHistory = false
 
-    @State private var showCompletionAlert = false
-    
     var body: some View {
         ZStack {
             if vm.isSetupMode {
@@ -19,58 +16,60 @@ struct ContentView: View {
             }
         }
         .frame(width: 300, height: 400)
-        //.background(Color(nsColor: .windowBackgroundColor))
-        // 2. OTWIERANIE OKNA HISTORII
         .sheet(isPresented: $showHistory) {
             HistoryView()
         }
-        // 2. DEFINICJA ALBERTU (POPUPU)
-        .alert("Session summary", isPresented: $showCompletionAlert) {
+        // POPRAWKA: Alert teraz nasłuchuje centralnej zmiennej z ViewModela
+        .alert("Session summary", isPresented: $vm.showCompletionPrompt) {
             Button("Task completed") {
-                saveSession(isCompleted: true)
-                vm.reset()
+                // Używamy funkcji z VM, która zapisuje i resetuje oba widoki
+                vm.saveAndReset(context: context, isCompleted: true)
             }
-            
+            .focusable(false)
+
             Button("Task not completed") {
-                saveSession(isCompleted: false)
-                vm.reset()
+                vm.saveAndReset(context: context, isCompleted: false)
+                // isTimerCancel = true // Opcjonalnie, jeśli używasz tej zmiennej globalnej
             }
-            
-            Button("Cancel", role: .cancel) { }
+            .focusable(false)
+
+            Button("Cancel", role: .cancel) {
+                // Po anulowaniu chowamy alert, ale nie resetujemy timera (wraca do pauzy)
+                vm.showCompletionPrompt = false
+            }
+            .focusable(false)
         } message: {
             Text("Is your task completed?")
         }
     }
-    
-    // Widok ustawień czasu
+
     var setupView: some View {
         VStack(spacing: 20) {
             Text("Productivity Chess Stopwatch")
                 .font(.title2)
                 .fontWeight(.bold)
-            
+
             Text("How much time your task will take?")
                 .foregroundColor(.secondary)
-            
+
             HStack {
                 VStack {
-                    Button("-5m") { if vm.targetDuration > 300 { vm.targetDuration -= 300 } }
-                    Button("-10m") { if vm.targetDuration > 600 { vm.targetDuration -= 600 } }
-                    Button("-30m") { if vm.targetDuration > 30*60 { vm.targetDuration -= 30*60 } }
+                    Button("-5m") { vm.adjustTargetDuration(by: -300) }.focusable(false)
+                    Button("-10m") { vm.adjustTargetDuration(by: -600) }.focusable(false)
+                    Button("-30m") { vm.adjustTargetDuration(by: -1800) }.focusable(false)
                 }
-                
-                
+
                 Text("\(Int(vm.targetDuration / 60)) min")
                     .font(.system(size: 24, weight: .bold, design: .monospaced))
                     .frame(width: 120)
-                
+
                 VStack {
-                    Button("+5m") { vm.targetDuration += 300 }
-                    Button("+10m") { vm.targetDuration += 600 }
-                    Button("+30m") { vm.targetDuration += 30*60 }
+                    Button("+5m") { vm.adjustTargetDuration(by: 300) }.focusable(false)
+                    Button("+10m") { vm.adjustTargetDuration(by: 600) }.focusable(false)
+                    Button("+30m") { vm.adjustTargetDuration(by: 1800) }.focusable(false)
                 }
             }
-            
+
             Button(action: {
                 vm.startSession()
             }) {
@@ -78,13 +77,13 @@ struct ContentView: View {
                     .fontWeight(.bold)
                     .padding()
                     .frame(maxWidth: .infinity)
-                    .background(Color.blue)
+                    .background(colorApp1)
                     .foregroundColor(.white)
                     .cornerRadius(8)
             }
             .buttonStyle(.plain)
-            
-            // 3. NOWY PRZYCISK HISTORII
+            .focusable(false)
+
             Button(action: {
                 showHistory = true
             }) {
@@ -93,16 +92,15 @@ struct ContentView: View {
                     Text("Historia")
                 }
             }
-            .buttonStyle(.borderless) // Dyskretny styl bez tła
+            .buttonStyle(.borderless)
             .padding(.top, 10)
+            .focusable(false)
         }
         .padding()
     }
-    
-    // Widok zegara szachowego
+
     var timerView: some View {
         VStack(spacing: 0) {
-            // GÓRA: Twój czas (Praca)
             Button(action: {
                 if !vm.isWorkTurn || (vm.isWorkTurn && !vm.isRunning) {
                     vm.toggleTimer()
@@ -111,14 +109,14 @@ struct ContentView: View {
                 ZStack {
                     Rectangle()
                         .fill(vm.isWorkTurn && vm.isRunning ? Color.green : Color.gray)
-                    
+
                     VStack {
                         Text("YOUR TASK")
                             .font(.caption)
                             .opacity(0.7)
                         Text(vm.timeString(time: vm.workTimeLeft))
                             .font(.system(size: 40, weight: .bold, design: .monospaced))
-                        
+
                         if !vm.isRunning && vm.isWorkTurn {
                             Text("Click, to start")
                                 .font(.caption)
@@ -129,12 +127,12 @@ struct ContentView: View {
                 }
             }
             .buttonStyle(.plain)
-            
+            .focusable(false)
+
             Divider()
                 .frame(height: 2)
                 .background(Color.black)
-            
-            // DÓŁ: Czas przeciwnika (Dystrakcje)
+
             Button(action: {
                 if vm.isWorkTurn || (!vm.isWorkTurn && !vm.isRunning) {
                     vm.toggleTimer()
@@ -143,7 +141,7 @@ struct ContentView: View {
                 ZStack {
                     Rectangle()
                         .fill(!vm.isWorkTurn && vm.isRunning ? Color.red : Color.gray)
-                    
+
                     VStack {
                         Text("DISTRACTIONS")
                             .font(.caption)
@@ -155,18 +153,17 @@ struct ContentView: View {
                 }
             }
             .buttonStyle(.plain)
+            .focusable(false)
         }
         .overlay(
-            // --- ZMIANA W PRZYCISKU RESETU ---
             Button(action: {
-                // 3. LOGIKA PRZYCISKU "X"
-                // Sprawdzamy, czy w ogóle coś robiliśmy (żeby nie pytać przy pustym timerze)
+                // POPRAWKA: Sprawdzamy, czy coś zrobiono, i wywołujemy requestFinish w VM
                 let workDone = vm.targetDuration - vm.workTimeLeft
                 if workDone > 0 || vm.distractionTimeElapsed > 0 {
-                    // Jeśli był jakiś postęp -> Pytamy o sukces
-                    showCompletionAlert = true
+                    // To wywołanie spauzuje timer I ustawi showCompletionPrompt = true
+                    // Dzięki temu oba okna (Popup i Main) zareagują jednocześnie
+                    vm.requestFinish()
                 } else {
-                    // Jeśli nic nie zrobiono -> Po prostu reset
                     vm.reset()
                 }
             }) {
@@ -174,50 +171,17 @@ struct ContentView: View {
                     .foregroundColor(.gray)
                     .padding(8)
             }
+            .focusable(false)
             .buttonStyle(.plain),
             alignment: .topTrailing
+            
         )
     }
     
-    func saveSession(isCompleted: Bool) {
-            let workDuration = vm.targetDuration - vm.workTimeLeft
-            
-            if workDuration > 0 || vm.distractionTimeElapsed > 0 {
-                let newTask = TaskItem(
-                    date: Date(),
-                    timeTask: workDuration,
-                    timeDistractions: vm.distractionTimeElapsed,
-                    timeEst: vm.targetDuration, // Zapisujemy planowany czas
-                    isCompleted: isCompleted    // Zapisujemy czy sukces
-                )
-                
-                context.insert(newTask)
-            }
-        }
-    
-    func completeTask() {
-        
-    }
-}
-#Preview{
-    ContentView()
+    // USUNIĘTO: func saveSession(...) - teraz używamy vm.saveAndReset(...)
 }
 
-// Pomocniczy komponent do efektu Blur (AppKit -> SwiftUI)
-struct VisualEffectView: NSViewRepresentable {
-    let material: NSVisualEffectView.Material
-    let blendingMode: NSVisualEffectView.BlendingMode
-    
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
-        view.material = material
-        view.blendingMode = blendingMode
-        view.state = .active
-        return view
-    }
-    
-    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
-        nsView.material = material
-        nsView.blendingMode = blendingMode
-    }
+// Reszta (VisualEffectView, Preview) bez zmian...
+#Preview {
+    ContentView(vm: TimerViewModel()) // Przekazujemy tymczasowy model do podglądu
 }

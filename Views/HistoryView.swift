@@ -30,9 +30,9 @@ struct HistoryView: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
+                .focusable(false)
             }
-            .padding(.horizontal, 7)
-            .padding(.vertical, 4)
+            .padding()
             .background(Color(nsColor: .windowBackgroundColor))
 
             Divider()
@@ -162,7 +162,7 @@ struct HistoryView: View {
                         .foregroundColor(.red)
                 } else if (item.isCompleted == true){
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.green)
+                        .foregroundColor(colorApp1)
                 }
             }
             
@@ -233,7 +233,7 @@ struct DailySummaryRow: View {
                 
                 HStack(spacing: 15) {
                     Label(format(totalWork), systemImage: "briefcase.fill")
-                        .foregroundColor(.green)
+                        .foregroundColor(colorApp1)
                     
                     Label(format(totalDistraction), systemImage: "coffee.fill")
                         .foregroundColor(.red)

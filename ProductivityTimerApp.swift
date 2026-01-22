@@ -2,22 +2,43 @@ import SwiftUI
 import SwiftData
 
 @main
-struct ProductivityChessApp: App {
-    // Delegate służy do konfiguracji okna po jego uruchomieniu
-    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+struct ProductivityTimerApp: App {
+    @StateObject private var vm = TimerViewModel()
     
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-                .onAppear {
-                    // Dodatkowe wymuszenie po pojawieniu się widoku
-                    NSApp.windows.first?.level = .floating
-                }
+    var sharedModelContainer: ModelContainer = {
+        let schema = Schema([TaskItem.self])
+        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        do {
+            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+        } catch {
+            fatalError("Could not create ModelContainer: \(error)")
         }
-        // Ukrywamy standardowy pasek tytułu, aby wyglądało jak "widget"
-        .windowStyle(HiddenTitleBarWindowStyle())
-        .windowResizability(.contentSize)
-        .modelContainer(for: TaskItem.self)
+    }()
+
+    var body: some Scene {
+        WindowGroup(id: "main-window") {
+            ContentView(vm: vm)
+        }
+        .modelContainer(sharedModelContainer)
+
+        MenuBarExtra {
+            TimerMenuPopup(vm: vm)
+                .modelContainer(sharedModelContainer)
+        } label: {
+            let time = vm.isWorkTurn ? vm.workTimeLeft : vm.distractionTimeElapsed
+            
+            HStack(spacing: 6) {
+                // 1. TEKST: Używamy Menlo + sztywna rama
+                Text(vm.timeString(time: time))
+                    .font(.custom("Menlo", size: 12)) // Menlo jest absolutnie sztywne
+                    .frame(width: 40, alignment: .trailing) // Sztywne 40pkt na tekst
+                
+                // 2. IKONA: Też musi mieć sztywną ramę, bo ikony mają różne rozmiary!
+                Image(systemName: vm.isRunning ? (vm.isWorkTurn ? "pencil.and.scribble" : "hourglass.badge.eye") : "timer")
+                    .frame(width: 22) // Rezerwujemy 22pkt na ikonę, niezależnie czy jest wąska czy szeroka
+            }
+        }
+        .menuBarExtraStyle(.window)
     }
 }
 
@@ -57,3 +78,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 }
+
+// colors
+let colorApp1 = Color(red: 69/255, green: 178/255, blue: 184/255)
+
+// additional
+
+var isTimerCancel = false
