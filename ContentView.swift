@@ -16,6 +16,7 @@ struct ContentView: View {
             }
         }
         .frame(width: 300, height: 400)
+        .fixedSize()
         .sheet(isPresented: $showHistory) {
             HistoryView()
         }
@@ -100,81 +101,71 @@ struct ContentView: View {
     }
 
     var timerView: some View {
-        VStack(spacing: 0) {
-            Button(action: {
-                if !vm.isWorkTurn || (vm.isWorkTurn && !vm.isRunning) {
-                    vm.toggleTimer()
-                }
-            }) {
-                ZStack {
-                    Rectangle()
-                        .fill(vm.isWorkTurn && vm.isRunning ? Color.green : Color.gray)
+        Button(action: {
+            // Jeden przycisk obsługuje całą logikę: Start lub Przełączenie
+            vm.toggleTimer()
+        }) {
+            ZStack {
+                // TŁO: Zmienia się w zależności od stanu
+                Rectangle()
+                    .fill(
+                        vm.isRunning
+                        ? (vm.isWorkTurn ? colorApp1 : Color.red) // Praca: Zielony, Dystrakcja: Czerwony
+                        : Color.gray // Pauza: Szary
+                    )
+                    .animation(.easeInOut, value: vm.isWorkTurn) // Płynne przejście kolorów
 
-                    VStack {
-                        Text("YOUR TASK")
+                VStack(spacing: 12) {
+                    
+                    // 1. NAGŁÓWEK (Zmienia się dynamicznie)
+                    Text(vm.isWorkTurn ? "YOUR TASK" : "DISTRACTIONS")
+                        .font(.headline)
+                        .opacity(0.8)
+                        .tracking(2) // Rozstrzelone litery dla stylu
+                    
+                    // 2. GŁÓWNY CZAS (Ten, który aktualnie jest aktywny)
+                    Text(vm.timeString(time: vm.isWorkTurn ? vm.workTimeLeft : vm.distractionTimeElapsed))
+                        .font(.system(size: 60, weight: .bold, design: .monospaced))
+                        .contentTransition(.numericText()) // Ładna animacja cyferek
+
+                    // 3. STATUS / PODPOWIEDŹ
+                    if !vm.isRunning {
+                        Text("Click to Start")
                             .font(.caption)
-                            .opacity(0.7)
-                        Text(vm.timeString(time: vm.workTimeLeft))
-                            .font(.system(size: 40, weight: .bold, design: .monospaced))
-
-                        if !vm.isRunning && vm.isWorkTurn {
-                            Text("Click, to start")
-                                .font(.caption)
-                                .padding(.top, 4)
-                        }
-                    }
-                    .foregroundColor(vm.isWorkTurn ? .white : .secondary)
-                }
-            }
-            .buttonStyle(.plain)
-            .focusable(false)
-
-            Divider()
-                .frame(height: 2)
-                .background(Color.black)
-
-            Button(action: {
-                if vm.isWorkTurn || (!vm.isWorkTurn && !vm.isRunning) {
-                    vm.toggleTimer()
-                }
-            }) {
-                ZStack {
-                    Rectangle()
-                        .fill(!vm.isWorkTurn && vm.isRunning ? Color.red : Color.gray)
-
-                    VStack {
-                        Text("DISTRACTIONS")
+                            .padding(.top, 5)
+                            .opacity(0.8)
+                    } else {
+                        // Opcjonalnie: Pokazujemy drugi czas na dole (dla kontekstu)
+                        Text(vm.isWorkTurn
+                             ? "Distractions: \(vm.timeString(time: vm.distractionTimeElapsed))"
+                             : "Work Left: \(vm.timeString(time: vm.workTimeLeft))")
                             .font(.caption)
-                            .opacity(0.7)
-                        Text(vm.timeString(time: vm.distractionTimeElapsed))
-                            .font(.system(size: 40, weight: .bold, design: .monospaced))
+                            .opacity(0.6)
                     }
-                    .foregroundColor(!vm.isWorkTurn ? .white : .secondary)
                 }
+                .foregroundColor(.white) // Tekst zawsze biały dla kontrastu
             }
-            .buttonStyle(.plain)
-            .focusable(false)
         }
+        .buttonStyle(.plain)
+        .focusable(false)
         .overlay(
+            // PRZYCISK ZAMYKANIA / ZAPISYWANIA (W prawym górnym rogu)
             Button(action: {
-                // POPRAWKA: Sprawdzamy, czy coś zrobiono, i wywołujemy requestFinish w VM
                 let workDone = vm.targetDuration - vm.workTimeLeft
                 if workDone > 0 || vm.distractionTimeElapsed > 0 {
-                    // To wywołanie spauzuje timer I ustawi showCompletionPrompt = true
-                    // Dzięki temu oba okna (Popup i Main) zareagują jednocześnie
                     vm.requestFinish()
                 } else {
                     vm.reset()
                 }
             }) {
                 Image(systemName: "xmark.circle.fill")
-                    .foregroundColor(.gray)
-                    .padding(8)
+                    .font(.title3)
+                    .foregroundColor(.white.opacity(0.6)) // Lekko przezroczysty biały, żeby pasował do tła
+                    .padding(12)
             }
-            .focusable(false)
-            .buttonStyle(.plain),
+            .buttonStyle(.plain)
+            .focusable(false),
             alignment: .topTrailing
-            
         )
     }
     

@@ -20,6 +20,8 @@ struct ProductivityTimerApp: App {
             ContentView(vm: vm)
         }
         .modelContainer(sharedModelContainer)
+        .windowResizability(.contentSize) // <--- TO BLOKUJE ROZCIĄGANIE
+        .windowStyle(.hiddenTitleBar)
 
         MenuBarExtra {
             TimerMenuPopup(vm: vm)
