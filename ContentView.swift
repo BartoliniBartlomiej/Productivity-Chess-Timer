@@ -6,6 +6,17 @@ struct ContentView: View {
 
     @Environment(\.modelContext) private var context
     @State private var showHistory = false
+    @State private var currentMotivation: String = "Stay focused"
+
+    private let textMotivation: [String] = [
+        "Stay focused",
+        "Keep going",
+        "You're doing great",
+        "One step at a time",
+        "Deep work mode",
+        "Minimize distractions",
+        "Progress over perfection"
+    ]
 
     var body: some View {
         ZStack {
@@ -20,10 +31,9 @@ struct ContentView: View {
         .sheet(isPresented: $showHistory) {
             HistoryView()
         }
-        // POPRAWKA: Alert teraz nasłuchuje centralnej zmiennej z ViewModela
+        // alert listening var from VM
         .alert("Session summary", isPresented: $vm.showCompletionPrompt) {
             Button("Task completed") {
-                // Używamy funkcji z VM, która zapisuje i resetuje oba widoki
                 vm.saveAndReset(context: context, isCompleted: true)
             }
             .focusable(false)
@@ -35,7 +45,7 @@ struct ContentView: View {
             .focusable(false)
 
             Button("Cancel", role: .cancel) {
-                // Po anulowaniu chowamy alert, ale nie resetujemy timera (wraca do pauzy)
+                // Cancel -> back to main timer popup view (timer is paused)
                 vm.showCompletionPrompt = false
             }
             .focusable(false)
@@ -90,7 +100,7 @@ struct ContentView: View {
             }) {
                 HStack {
                     Image(systemName: "list.bullet.clipboard")
-                    Text("Historia")
+                    Text("History")
                 }
             }
             .buttonStyle(.borderless)
@@ -102,54 +112,69 @@ struct ContentView: View {
 
     var timerView: some View {
         Button(action: {
-            // Jeden przycisk obsługuje całą logikę: Start lub Przełączenie
+            // one button controls everything
+            // 1. Starts timer
+            // every next switch modes (Focus/Distractions)
             vm.toggleTimer()
+            
         }) {
             ZStack {
-                // TŁO: Zmienia się w zależności od stanu
+                // Background
                 Rectangle()
                     .fill(
                         vm.isRunning
-                        ? (vm.isWorkTurn ? colorApp1 : Color.red) // Praca: Zielony, Dystrakcja: Czerwony
-                        : Color.gray // Pauza: Szary
+                        ? (vm.isWorkTurn ? colorApp1 : Color.red)
+                        : Color.gray
                     )
-                    .animation(.easeInOut, value: vm.isWorkTurn) // Płynne przejście kolorów
+                    .animation(.easeInOut, value: vm.isWorkTurn) // Smooth changing colors
 
                 VStack(spacing: 12) {
                     
-                    // 1. NAGŁÓWEK (Zmienia się dynamicznie)
-                    Text(vm.isWorkTurn ? "YOUR TASK" : "DISTRACTIONS")
+                    // Header
+                    Text(vm.isWorkTurn ? "FOCUS" : "DISTRACTIONS")
                         .font(.headline)
                         .opacity(0.8)
-                        .tracking(2) // Rozstrzelone litery dla stylu
+                        .tracking(2) // W o r d
                     
-                    // 2. GŁÓWNY CZAS (Ten, który aktualnie jest aktywny)
+                    // Time from mode that's live
                     Text(vm.timeString(time: vm.isWorkTurn ? vm.workTimeLeft : vm.distractionTimeElapsed))
                         .font(.system(size: 60, weight: .bold, design: .monospaced))
-                        .contentTransition(.numericText()) // Ładna animacja cyferek
+                        .contentTransition(.numericText()) // animations of numerals
 
-                    // 3. STATUS / PODPOWIEDŹ
+                    // STATUS
                     if !vm.isRunning {
                         Text("Click to Start")
                             .font(.caption)
                             .padding(.top, 5)
                             .opacity(0.8)
                     } else {
-                        // Opcjonalnie: Pokazujemy drugi czas na dole (dla kontekstu)
+                        // Other time
                         Text(vm.isWorkTurn
                              ? "Distractions: \(vm.timeString(time: vm.distractionTimeElapsed))"
                              : "Work Left: \(vm.timeString(time: vm.workTimeLeft))")
                             .font(.caption)
                             .opacity(0.6)
                     }
+                    
+                    Text(currentMotivation)
+                        .font(.headline)
+                        .opacity(0.8)
+                        .tracking(2) // W o r d
+                        .opacity(vm.isRunning ? 1 : 0.0)
                 }
-                .foregroundColor(.white) // Tekst zawsze biały dla kontrastu
+                .foregroundColor(.white) // Text always white
+                .onChange(of: vm.isWorkTurn) { _, _ in
+                    currentMotivation = textMotivation.randomElement() ?? currentMotivation
+                }
+                .onAppear {
+                    currentMotivation = textMotivation.randomElement() ?? currentMotivation
+                }
             }
         }
         .buttonStyle(.plain)
         .focusable(false)
         .overlay(
-            // PRZYCISK ZAMYKANIA / ZAPISYWANIA (W prawym górnym rogu)
+            // Exit button
             Button(action: {
                 let workDone = vm.targetDuration - vm.workTimeLeft
                 if workDone > 0 || vm.distractionTimeElapsed > 0 {
@@ -157,6 +182,7 @@ struct ContentView: View {
                 } else {
                     vm.reset()
                 }
+                
             }) {
                 Image(systemName: "xmark.circle.fill")
                     .font(.title3)
@@ -168,11 +194,9 @@ struct ContentView: View {
             alignment: .topTrailing
         )
     }
-    
-    // USUNIĘTO: func saveSession(...) - teraz używamy vm.saveAndReset(...)
 }
 
-// Reszta (VisualEffectView, Preview) bez zmian...
 #Preview {
-    ContentView(vm: TimerViewModel()) // Przekazujemy tymczasowy model do podglądu
+    ContentView(vm: TimerViewModel()) // only for preview
 }
+

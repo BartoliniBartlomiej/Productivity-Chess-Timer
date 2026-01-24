@@ -9,7 +9,8 @@ import Foundation
 import SwiftData
 
 @Model
-final class TaskItem {
+class TaskItem {
+    // @Attribute(.primaryKey) var id: UUID
     var date: Date
     var timeTask: TimeInterval //time in which task is completed
     var timeDistractions: TimeInterval //time of distractions

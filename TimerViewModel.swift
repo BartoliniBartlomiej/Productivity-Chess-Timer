@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 import Combine
-import SwiftData // WAŻNE: Dodaj ten import
+import SwiftData
 
 class TimerViewModel: ObservableObject {
 
@@ -13,19 +13,17 @@ class TimerViewModel: ObservableObject {
     @Published var isWorkTurn: Bool = true
     @Published var isSetupMode: Bool = true
     
-    // NOWE: Stan sterujący pytaniem "Czy zakończono?" w obu oknach
     @Published var showCompletionPrompt: Bool = false
+    @Published var showSummaryInPopup: Bool = false
 
     private var timer: Timer?
 
-    // --- Istniejące funkcje pomocnicze ---
     func timeString(time: TimeInterval) -> String {
         let minutes = Int(time) / 60
         let seconds = Int(time) % 60
         return String(format: "%02d:%02d", minutes, seconds)
     }
     
-    // Nowa funkcja do zmiany czasu (z poprzedniej odpowiedzi)
     func adjustTargetDuration(by seconds: TimeInterval) {
         guard isSetupMode else { return }
         let newDuration = targetDuration + seconds
@@ -39,7 +37,7 @@ class TimerViewModel: ObservableObject {
         workTimeLeft = targetDuration
         distractionTimeElapsed = 0
         isSetupMode = false
-        isRunning = false // Czeka na pierwsze kliknięcie
+        isRunning = false // first click
         isWorkTurn = true
         showCompletionPrompt = false
     }
@@ -61,11 +59,11 @@ class TimerViewModel: ObservableObject {
     
     func requestFinish() {
         print("Debug: Request Finish called")
-        pause() // Zatrzymuje timer
-        showCompletionPrompt = true // To przełączy widok w Popupie i wywoła Alert w Oknie
+        pause() // stop tiemr
+        showCompletionPrompt = true // switch view in Popup
     }
 
-    // ZMIANA: Pełny reset stanu
+    // full reset of state
     func reset() {
         pause()
         isSetupMode = true
@@ -75,11 +73,11 @@ class TimerViewModel: ObservableObject {
         isWorkTurn = true
     }
     
-    // NOWE: Logika zapisu przeniesiona tutaj
+    // logic of saving task to base
     func saveAndReset(context: ModelContext, isCompleted: Bool) {
         let workDuration = targetDuration - workTimeLeft
 
-        // Zapisujemy tylko jeśli cokolwiek robiliśmy
+        // only if there is any work invlolved in task
         if workDuration > 0 || distractionTimeElapsed > 0 {
             let newTask = TaskItem(
                 date: Date(),
@@ -89,7 +87,6 @@ class TimerViewModel: ObservableObject {
                 isCompleted: isCompleted
             )
             context.insert(newTask)
-            // SwiftData automatycznie zapisuje zmiany, ale context.insert jest kluczowy
             print("Task saved to history. | Work duration: \(workDuration)s |Distraction duration: \(distractionTimeElapsed)s")
         }
         
@@ -105,8 +102,7 @@ class TimerViewModel: ObservableObject {
                 } else {
                     self.isRunning = false
                     self.timer?.invalidate()
-                    // Opcjonalnie: Automatycznie wywołaj prompt, gdy czas się skończy
-                    self.showCompletionPrompt = true
+                    self.showCompletionPrompt = true // when time's up -> auto completion view
                 }
             } else {
                 self.distractionTimeElapsed += 1
