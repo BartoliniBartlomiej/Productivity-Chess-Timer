@@ -20,6 +20,7 @@ struct TimerMenuPopup: View {
 
     // MARK: - Full popup view
     var body: some View {
+        
         VStack(spacing: 12) {
             
             // LOGIC:

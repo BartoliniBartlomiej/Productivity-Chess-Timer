@@ -12,3 +12,5 @@ let colorApp1 = Color(red: 69/255, green: 178/255, blue: 184/255) // green'ish
 
 // additional
 var isTimerCancel = false
+
+

@@ -95,17 +95,34 @@ struct ContentView: View {
             .buttonStyle(.plain)
             .focusable(false)
 
-            Button(action: {
-                showHistory = true
-            }) {
-                HStack {
-                    Image(systemName: "list.bullet.clipboard")
-                    Text("History")
+            HStack {
+                Button(action: {
+                    showHistory = true
+                }) {
+                    HStack {
+                        Image(systemName: "list.bullet.clipboard")
+                        Text("History")
+                    }
                 }
+                .buttonStyle(.borderless)
+                .padding(.top, 10)
+                .focusable(false)
+                
+                Spacer()
+                
+                Button(action: {
+                    //showHistory = true
+                }) {
+                    HStack {
+                        Image(systemName: "checklist.rtl")
+                        Text("MultiTask")
+                    }
+                }
+                .buttonStyle(.borderless)
+                .padding(.top, 10)
+                .focusable(false)
             }
-            .buttonStyle(.borderless)
-            .padding(.top, 10)
-            .focusable(false)
+            
         }
         .padding()
     }
@@ -120,14 +137,15 @@ struct ContentView: View {
         }) {
             ZStack {
                 // Background
-                Rectangle()
-                    .fill(
-                        vm.isRunning
-                        ? (vm.isWorkTurn ? colorApp1 : Color.red)
-                        : Color.gray
-                    )
-                    .animation(.easeInOut, value: vm.isWorkTurn) // Smooth changing colors
-
+                let colors = getWaveColors()
+                WaveBackground(
+                    color1: colors.0,
+                    color2: colors.1,
+                    color3: colors.2
+                )
+                .animation(.easeInOut(duration: 1.0), value: vm.isWorkTurn)
+                .animation(.easeInOut(duration: 1.0), value: vm.isRunning)
+                
                 VStack(spacing: 12) {
                     
                     // Header
@@ -171,7 +189,7 @@ struct ContentView: View {
                 }
             }
         }
-        .buttonStyle(.plain)
+        //.buttonStyle(.plain) // getting darker when clicked
         .focusable(false)
         .overlay(
             // Exit button
@@ -182,11 +200,11 @@ struct ContentView: View {
                 } else {
                     vm.reset()
                 }
-                
+
             }) {
                 Image(systemName: "xmark.circle.fill")
                     .font(.title3)
-                    .foregroundColor(.white.opacity(0.6)) // Lekko przezroczysty biały, żeby pasował do tła
+                    .foregroundColor(.gray.opacity(0.6))
                     .padding(12)
             }
             .buttonStyle(.plain)
@@ -194,9 +212,22 @@ struct ContentView: View {
             alignment: .topTrailing
         )
     }
+    
+    func getWaveColors() -> (Color, Color, Color) {
+        if !vm.isRunning {
+            // Kolory gdy zatrzymany (szare)
+            return (.gray, .gray, .gray)
+        } else if vm.isWorkTurn {
+            // Kolory pracy
+            return (.green, colorApp1, .blue)
+        } else {
+            // Kolory przerwy
+            return (.purple, .pink, .orange)
+        }
+    }
 }
 
-#Preview {
-    ContentView(vm: TimerViewModel()) // only for preview
-}
+//#Preview {
+//    ContentView(vm: TimerViewModel()) // only for preview
+//}
 

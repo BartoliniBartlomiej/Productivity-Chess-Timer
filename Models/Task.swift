@@ -18,6 +18,8 @@ class TaskItem {
     var timeEst: TimeInterval// estimated time to do task
     var isCompleted: Bool
     
+    var list: MultiTaskList?
+    
     init(
         date: Date,
         timeTask: TimeInterval,
